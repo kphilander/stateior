@@ -24,12 +24,12 @@ getFAF <- function(year) {
     date_note <- notes[grep("About the Freight Analysis Framework", notes) - 4]
     date_last_modified <- stringr::str_match(date_note, "day, (.*?)</div>")[2]
   } else {
-    ### FAF 5.3 ###
+    ### FAF 5.7.1 ###
     # Create placeholder for zip file and specify filename based on year
-    # Use forecast data set that includes 2019 and 2020 (mid-range estimates only)
-    FAFzip <- file.path(stateio_dir, "FAF5.6.1_State_2018-2023.zip")
+    # Use FAF 5.7.1 data set that includes 2018-2024 estimates
+    FAFzip <- file.path(stateio_dir, "FAF5.7.1_State_2018-2024.zip")
     file_baseurl <- "https://faf.ornl.gov/faf5/data/download_files/"
-    filename <- file.path(stateio_dir, "FAF5.6.1_State_2018-2023.csv")
+    filename <- file.path(stateio_dir, "FAF5.7.1_State_2018-2024.csv")
     # Use last modified date on www.faf.ornl.gov
     url <- "https://faf.ornl.gov/faf5"
     notes <- readLines(url)

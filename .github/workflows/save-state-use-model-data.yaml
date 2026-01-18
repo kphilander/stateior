@@ -30,6 +30,7 @@ jobs:
           - 2021
           - 2022
           - 2023
+          - 2024
 
     # env:
       # R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
