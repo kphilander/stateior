@@ -60,6 +60,7 @@ function(input, output, session) {
   observe({
     # Wait for input to be available before proceeding
     req(input$color)
+    message("Map observe triggered - rendering markers...")
 
     colorBy <- input$color
     sizeBy <- input$size
@@ -76,22 +77,27 @@ function(input, output, session) {
       legendtitle <- "Adult Mean Income"
     }
 
-    leafletProxy("map", data = zipdata) %>%
-      clearShapes() %>%
-      addPolygons(
-        fillColor = ~pal(colorData),
-        weight = .1,
-        opacity = .5,
-        color = "white",
-        fillOpacity = 0.5,
-        layerId = zipdata$zipcode) %>%
-      addMarkers(lat=casinodata$geocodehere_lat,
-                 lng = casinodata$geocodehere_lon,
-                 popup = casinodata$marker_text,
-                 label = ~as.character(c(casinodata$name)),
-                 clusterOptions = markerClusterOptions()) %>%
-      addLegend("bottomleft", pal=pal, values=colorData, title=legendtitle,
-                layerId="colorLegend")
+    tryCatch({
+      leafletProxy("map", data = zipdata) %>%
+        clearShapes() %>%
+        addPolygons(
+          fillColor = ~pal(colorData),
+          weight = .1,
+          opacity = .5,
+          color = "white",
+          fillOpacity = 0.5,
+          layerId = zipdata$zipcode) %>%
+        addMarkers(lat=casinodata$geocodehere_lat,
+                   lng = casinodata$geocodehere_lon,
+                   popup = casinodata$marker_text,
+                   label = ~as.character(c(casinodata$name)),
+                   clusterOptions = markerClusterOptions()) %>%
+        addLegend("bottomleft", pal=pal, values=colorData, title=legendtitle,
+                  layerId="colorLegend")
+      message("Map rendering complete")
+    }, error = function(e) {
+      message(paste("ERROR in map rendering:", e$message))
+    })
   })
 
   showZipcodePopup <- function(zipcode, lat, lng) {
