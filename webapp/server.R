@@ -93,13 +93,7 @@ function(input, output, session) {
       sprintf("Zipcode population (21+): %s", as.integer(selectedZip$adultpop)), tags$br(),
       sprintf("GGR estimate (non-IR): %s", dollar(selectedZip$eGGR)), tags$br(),
       sprintf("GGR estimate (IR): %s", dollar(selectedZip$eGGR_IR)), tags$br(),
-      sprintf("Catchment area geo-demand index: %s", (round(selectedZip$desirabilityindex, digits=2))),
-      tags$hr(),
-      tags$strong("Economic Impact (I-O Multipliers):"), tags$br(),
-      sprintf("Output Multiplier: %sx", round(selectedZip$output_mult, 2)), tags$br(),
-      sprintf("Est. Total Output: %s", dollar(selectedZip$est_output_impact)), tags$br(),
-      sprintf("Est. Jobs Created: %s", format(selectedZip$est_jobs, big.mark=",")), tags$br(),
-      sprintf("Est. Labor Income: %s", dollar(selectedZip$est_income_impact))
+      sprintf("Catchment area geo-demand index: %s", (round(selectedZip$desirabilityindex, digits=2)))
     ))
     leafletProxy("map") %>% addPopups(lng, lat, content, layerId = zipcode)
   }
