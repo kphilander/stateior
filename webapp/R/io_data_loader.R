@@ -1,7 +1,6 @@
 # io_data_loader.R
 # Functions to load stateior I-O data with caching for performance
-
-library(stateior)
+# Note: stateior is loaded conditionally in Global.R
 
 # Cache for loaded I-O data (avoids repeated downloads)
 io_cache <- new.env(parent = emptyenv())
