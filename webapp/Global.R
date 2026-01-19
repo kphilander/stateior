@@ -3,19 +3,30 @@ library(sf)
 library(tigris)
 library(tidyverse)
 
-# Load stateior for I-O analysis (install if needed)
-if (!requireNamespace("stateior", quietly = TRUE)) {
-  message("Installing stateior package...")
-  remotes::install_github("USEPA/stateior")
-}
-library(stateior)
+# Try to load stateior (optional - app works without it using defaults)
+stateior_available <- FALSE
+tryCatch({
+  if (requireNamespace("stateior", quietly = TRUE)) {
+    library(stateior)
+    stateior_available <- TRUE
+    message("stateior loaded successfully")
+  }
+}, error = function(e) {
+  message("stateior not available - using default multipliers")
+})
 
-# Source economic impact modules
-source("R/io_data_loader.R")
-source("R/leontief_engine.R")
-source("R/multiplier_calc.R")
-source("R/impact_analysis.R")
-source("R/tax_estimator.R")
+# Source economic impact modules only if they exist
+module_files <- c("R/io_data_loader.R", "R/leontief_engine.R",
+                  "R/multiplier_calc.R", "R/impact_analysis.R", "R/tax_estimator.R")
+for (f in module_files) {
+  if (file.exists(f)) {
+    tryCatch({
+      source(f)
+    }, error = function(e) {
+      message(paste("Could not load module:", f))
+    })
+  }
+}
 
 # Import casino data
 allzips <- readRDS("allzips.rds")
@@ -57,6 +68,11 @@ getFullStateName <- function(abbrev) {
     return(state_mapping[abbrev])
   }
   return(abbrev)
+}
+
+# Get list of states (for dropdown)
+getStateList <- function() {
+  return(as.character(state_mapping))
 }
 
 # Available years for I-O analysis

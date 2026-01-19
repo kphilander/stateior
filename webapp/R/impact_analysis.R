@@ -8,42 +8,62 @@
 #' @param include_induced Whether to include Type II (induced) effects
 #' @return List with detailed impact breakdown
 calculateCasinoImpact <- function(ggr, state, year = 2020, include_induced = TRUE) {
-  # Get multipliers
-  if (include_induced) {
-    mults <- calculateTypeIIMultipliers(state, year, "713")
-  } else {
-    mults <- calculateTypeIMultipliers(state, year, "713")
-  }
 
-  # Get direct effect ratios
-  direct <- getDirectEffectRatios(state, year)
+  # Try to get multipliers from stateior, fall back to defaults
+  mults <- tryCatch({
+    if (exists("stateior_available", envir = .GlobalEnv) &&
+        get("stateior_available", envir = .GlobalEnv) &&
+        exists("calculateTypeIIMultipliers")) {
+      if (include_induced) {
+        calculateTypeIIMultipliers(state, year, "713")
+      } else {
+        calculateTypeIMultipliers(state, year, "713")
+      }
+    } else {
+      getDefaultMultipliers(include_induced)
+    }
+  }, error = function(e) {
+    message(paste("Using default multipliers:", e$message))
+    getDefaultMultipliers(include_induced)
+  })
+
+  # Get direct effect ratios (with fallback)
+  direct <- tryCatch({
+    if (exists("stateior_available", envir = .GlobalEnv) &&
+        get("stateior_available", envir = .GlobalEnv) &&
+        exists("getDirectEffectRatios")) {
+      getDirectEffectRatios(state, year)
+    } else {
+      list(employment_per_million = 8, income_ratio = 0.35)
+    }
+  }, error = function(e) {
+    list(employment_per_million = 8, income_ratio = 0.35)
+  })
 
   # Convert GGR to millions for calculations
   ggr_millions <- ggr / 1e6
 
   # Calculate direct effects
-  direct_output <- ggr  # Direct output equals the GGR
-  direct_jobs <- if (!is.na(direct$employment_per_million)) {
+  direct_output <- ggr
+  direct_jobs <- if (!is.null(direct$employment_per_million) && !is.na(direct$employment_per_million)) {
     direct$employment_per_million * ggr_millions
   } else {
-    # Default: ~8 jobs per $1M in gambling industry
-    8 * ggr_millions
+    8 * ggr_millions  # Default: ~8 jobs per $1M
   }
-  direct_income <- if (!is.na(direct$income_ratio)) {
+  direct_income <- if (!is.null(direct$income_ratio) && !is.na(direct$income_ratio)) {
     direct$income_ratio * ggr
   } else {
-    # Default: ~35% of output goes to labor income
-    0.35 * ggr
+    0.35 * ggr  # Default: ~35% goes to labor
   }
 
   # Calculate total effects using multipliers
-  total_output <- if (!is.na(mults$output)) mults$output * ggr else ggr
-  total_jobs <- if (!is.na(mults$employment)) {
-    mults$employment * ggr_millions
-  } else {
-    direct_jobs * (if (include_induced) 1.8 else 1.4)
-  }
-  total_income <- if (!is.na(mults$income)) mults$income * ggr else direct_income * 1.5
+  output_mult <- if (!is.null(mults$output) && !is.na(mults$output)) mults$output else (if (include_induced) 2.4 else 1.8)
+  emp_mult <- if (!is.null(mults$employment) && !is.na(mults$employment)) mults$employment else (if (include_induced) 14 else 10)
+  income_mult <- if (!is.null(mults$income) && !is.na(mults$income)) mults$income else (if (include_induced) 0.55 else 0.40)
+
+  total_output <- output_mult * ggr
+  total_jobs <- emp_mult * ggr_millions
+  total_income <- income_mult * ggr
 
   # Calculate indirect and induced effects
   indirect_output <- (total_output - direct_output) * (if (include_induced) 0.6 else 1.0)
@@ -56,7 +76,15 @@ calculateCasinoImpact <- function(ggr, state, year = 2020, include_induced = TRU
   induced_income <- if (include_induced) total_income - direct_income - indirect_income else 0
 
   # Estimate tax revenue
-  tax_estimate <- estimateTaxRevenue(ggr, state, total_jobs, total_income)
+  tax_estimate <- tryCatch({
+    if (exists("estimateTaxRevenue")) {
+      estimateTaxRevenue(ggr, state, total_jobs, total_income)
+    } else {
+      getDefaultTaxEstimate(ggr, total_income)
+    }
+  }, error = function(e) {
+    getDefaultTaxEstimate(ggr, total_income)
+  })
 
   return(list(
     # Input parameters
@@ -94,76 +122,44 @@ calculateCasinoImpact <- function(ggr, state, year = 2020, include_induced = TRU
   ))
 }
 
-#' Create impact summary data frame for display
-#' @param impact Result from calculateCasinoImpact
-#' @return Data frame formatted for display
-formatImpactSummary <- function(impact) {
-  data.frame(
-    Category = c("Jobs", "Labor Income", "Economic Output", "Tax Revenue"),
-    Direct = c(
-      formatNumber(impact$jobs_direct),
-      formatCurrency(impact$income_direct),
-      formatCurrency(impact$output_direct),
-      "-"
-    ),
-    Indirect = c(
-      formatNumber(impact$jobs_indirect),
-      formatCurrency(impact$income_indirect),
-      formatCurrency(impact$output_indirect),
-      "-"
-    ),
-    Induced = c(
-      formatNumber(impact$jobs_induced),
-      formatCurrency(impact$income_induced),
-      formatCurrency(impact$output_induced),
-      "-"
-    ),
-    Total = c(
-      formatNumber(impact$jobs_total),
-      formatCurrency(impact$income_total),
-      formatCurrency(impact$output_total),
-      formatCurrency(impact$tax_total)
-    ),
-    stringsAsFactors = FALSE
-  )
+#' Get default multipliers when stateior not available
+#' @param include_induced Whether to use Type II multipliers
+#' @return List with default multipliers
+getDefaultMultipliers <- function(include_induced = TRUE) {
+  if (include_induced) {
+    list(
+      output = 2.4,
+      employment = 14,
+      income = 0.55,
+      sector = "713",
+      state = "Default",
+      year = 2020,
+      type = "Type II (Default)"
+    )
+  } else {
+    list(
+      output = 1.8,
+      employment = 10,
+      income = 0.40,
+      sector = "713",
+      state = "Default",
+      year = 2020,
+      type = "Type I (Default)"
+    )
+  }
 }
 
-#' Calculate impacts for multiple casinos
-#' @param casinos Data frame with columns: name, state, ggr
-#' @param year Analysis year
-#' @param include_induced Include Type II effects
-#' @return List with individual and aggregated impacts
-calculateMultipleCasinoImpacts <- function(casinos, year = 2020, include_induced = TRUE) {
-  individual_impacts <- list()
-  aggregate <- list(
-    jobs_total = 0,
-    income_total = 0,
-    output_total = 0,
-    tax_total = 0
+#' Get default tax estimate
+#' @param ggr Gross gaming revenue
+#' @param total_income Total labor income
+#' @return List with tax estimates
+getDefaultTaxEstimate <- function(ggr, total_income) {
+  list(
+    gaming_tax = ggr * 0.15,
+    income_tax = total_income * 0.05,
+    sales_tax = total_income * 0.7 * 0.06,
+    total_tax = ggr * 0.15 + total_income * 0.05 + total_income * 0.7 * 0.06
   )
-
-  for (i in 1:nrow(casinos)) {
-    casino <- casinos[i, ]
-    impact <- calculateCasinoImpact(
-      ggr = casino$ggr,
-      state = casino$state,
-      year = year,
-      include_induced = include_induced
-    )
-
-    individual_impacts[[casino$name]] <- impact
-
-    aggregate$jobs_total <- aggregate$jobs_total + impact$jobs_total
-    aggregate$income_total <- aggregate$income_total + impact$income_total
-    aggregate$output_total <- aggregate$output_total + impact$output_total
-    aggregate$tax_total <- aggregate$tax_total + impact$tax_total
-  }
-
-  return(list(
-    individual = individual_impacts,
-    aggregate = aggregate,
-    casino_count = nrow(casinos)
-  ))
 }
 
 #' Format number with commas
