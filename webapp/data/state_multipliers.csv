@@ -1,0 +1,52 @@
+state_name,state_abbr,output_mult,emp_mult,income_mult
+Alabama,AL,2.18,12.4,0.49
+Alaska,AK,1.82,9.8,0.41
+Arizona,AZ,2.31,13.2,0.52
+Arkansas,AR,2.09,11.8,0.47
+California,CA,2.48,14.6,0.58
+Colorado,CO,2.35,13.8,0.54
+Connecticut,CT,2.29,13.1,0.53
+Delaware,DE,2.05,11.5,0.46
+District of Columbia,DC,2.21,12.6,0.50
+Florida,FL,2.38,14.0,0.55
+Georgia,GA,2.32,13.4,0.53
+Hawaii,HI,2.02,11.2,0.45
+Idaho,ID,1.95,10.8,0.43
+Illinois,IL,2.44,14.2,0.56
+Indiana,IN,2.28,13.0,0.52
+Iowa,IA,2.15,12.2,0.48
+Kansas,KS,2.12,11.9,0.47
+Kentucky,KY,2.16,12.3,0.48
+Louisiana,LA,2.24,12.8,0.51
+Maine,ME,1.92,10.6,0.43
+Maryland,MD,2.27,13.0,0.52
+Massachusetts,MA,2.41,14.0,0.56
+Michigan,MI,2.34,13.6,0.54
+Minnesota,MN,2.36,13.8,0.54
+Mississippi,MS,2.04,11.4,0.45
+Missouri,MO,2.26,12.9,0.51
+Montana,MT,1.88,10.2,0.42
+Nebraska,NE,2.11,11.8,0.47
+Nevada,NV,2.58,15.8,0.62
+New Hampshire,NH,2.06,11.6,0.46
+New Jersey,NJ,2.45,14.4,0.57
+New Mexico,NM,2.01,11.1,0.45
+New York,NY,2.52,15.0,0.59
+North Carolina,NC,2.30,13.2,0.52
+North Dakota,ND,1.94,10.7,0.43
+Ohio,OH,2.37,13.8,0.54
+Oklahoma,OK,2.14,12.0,0.48
+Oregon,OR,2.22,12.7,0.50
+Pennsylvania,PA,2.42,14.1,0.56
+Rhode Island,RI,2.19,12.5,0.49
+South Carolina,SC,2.17,12.4,0.48
+South Dakota,SD,1.91,10.5,0.42
+Tennessee,TN,2.25,12.8,0.51
+Texas,TX,2.40,14.0,0.55
+Utah,UT,2.20,12.6,0.50
+Vermont,VT,1.89,10.4,0.42
+Virginia,VA,2.33,13.4,0.53
+Washington,WA,2.39,14.0,0.55
+West Virginia,WV,1.98,11.0,0.44
+Wisconsin,WI,2.29,13.1,0.52
+Wyoming,WY,1.85,10.0,0.40

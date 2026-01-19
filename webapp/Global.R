@@ -20,31 +20,36 @@ fix_encoding <- function(x) {
 allzips <- allzips %>% mutate(across(where(is.character), fix_encoding))
 casinodata <- casinodata %>% mutate(across(where(is.character), fix_encoding))
 
-# Economic Impact Multipliers by State (Type II multipliers for gambling sector 713)
-# Source: Derived from BEA RIMS II and stateior I-O tables
-state_multipliers <- data.frame(
-  state_abbr = c("AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL",
-                 "GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
-                 "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH",
-                 "NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI",
-                 "SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"),
-  output_mult = c(2.3, 1.9, 2.4, 2.2, 2.5, 2.4, 2.3, 2.1, 2.2, 2.4,
-                  2.3, 2.1, 2.0, 2.5, 2.4, 2.3, 2.2, 2.2, 2.3, 2.0,
-                  2.3, 2.4, 2.4, 2.4, 2.1, 2.3, 1.9, 2.2, 2.6, 2.1,
-                  2.5, 2.1, 2.5, 2.3, 2.0, 2.4, 2.2, 2.3, 2.5, 2.2,
-                  2.2, 2.0, 2.3, 2.4, 2.2, 2.0, 2.3, 2.4, 2.1, 2.3, 1.9),
-  emp_mult = c(13, 11, 14, 13, 15, 14, 13, 12, 13, 14,
-               13, 12, 11, 15, 14, 13, 12, 13, 13, 11,
-               13, 14, 14, 14, 12, 13, 11, 13, 16, 12,
-               15, 12, 15, 13, 11, 14, 13, 13, 15, 13,
-               13, 11, 13, 14, 13, 11, 14, 14, 12, 14, 10),
-  income_mult = c(0.52, 0.45, 0.55, 0.50, 0.58, 0.55, 0.54, 0.48, 0.52, 0.54,
-                  0.52, 0.48, 0.46, 0.57, 0.55, 0.53, 0.50, 0.50, 0.52, 0.46,
-                  0.53, 0.56, 0.55, 0.55, 0.48, 0.52, 0.44, 0.50, 0.60, 0.48,
-                  0.58, 0.48, 0.58, 0.52, 0.46, 0.55, 0.50, 0.53, 0.57, 0.50,
-                  0.50, 0.46, 0.52, 0.55, 0.50, 0.46, 0.53, 0.55, 0.48, 0.53, 0.42),
-  stringsAsFactors = FALSE
-)
+# Load pre-computed Type II multipliers for gambling sector (BEA 713)
+# Source: Derived from stateior I-O tables using Leontief analysis
+# Multipliers based on BEA RIMS II methodology for sector 713 (Amusements, gambling, and recreation)
+state_multipliers <- tryCatch({
+  # Try RDS first (faster, includes metadata)
+  if (file.exists("data/state_multipliers.rds")) {
+    mults <- readRDS("data/state_multipliers.rds")
+    message(paste("Loaded multipliers from RDS, computed:", attr(mults, "computed_date")))
+    mults
+  } else if (file.exists("data/state_multipliers.csv")) {
+    # Fall back to CSV
+    mults <- read.csv("data/state_multipliers.csv", stringsAsFactors = FALSE)
+    message("Loaded multipliers from CSV")
+    mults
+  } else {
+    stop("No multiplier data file found")
+  }
+}, error = function(e) {
+  message(paste("Could not load pre-computed multipliers:", e$message))
+  message("Using default national average multipliers")
+  # Fallback to national averages
+  data.frame(
+    state_name = c(state.name, "District of Columbia"),
+    state_abbr = c(state.abb, "DC"),
+    output_mult = rep(2.25, 51),
+    emp_mult = rep(12.5, 51),
+    income_mult = rep(0.50, 51),
+    stringsAsFactors = FALSE
+  )
+})
 
 # Join multipliers to allzips (state.x contains state abbreviations)
 allzips <- allzips %>%
