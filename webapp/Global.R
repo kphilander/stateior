@@ -3,32 +3,7 @@ library(sf)
 library(tigris)
 library(tidyverse)
 
-# Try to load stateior (optional - app works without it using defaults)
-stateior_available <- FALSE
-tryCatch({
-  if (requireNamespace("stateior", quietly = TRUE)) {
-    library(stateior)
-    stateior_available <- TRUE
-    message("stateior loaded successfully")
-  }
-}, error = function(e) {
-  message("stateior not available - using default multipliers")
-})
-
-# Source economic impact modules only if they exist
-module_files <- c("R/io_data_loader.R", "R/leontief_engine.R",
-                  "R/multiplier_calc.R", "R/impact_analysis.R", "R/tax_estimator.R")
-for (f in module_files) {
-  if (file.exists(f)) {
-    tryCatch({
-      source(f)
-    }, error = function(e) {
-      message(paste("Could not load module:", f))
-    })
-  }
-}
-
-# Import casino data
+# Import casino data FIRST (before any modules that might interfere)
 allzips <- readRDS("allzips.rds")
 casinodata <- readRDS("casinodata.rds")
 
@@ -38,7 +13,7 @@ message(paste("Loaded", nrow(casinodata), "casinos"))
 message(paste("Casino columns:", paste(names(casinodata), collapse=", ")))
 message(paste("Valid casino lat/lon:", sum(!is.na(casinodata$geocodehere_lat) & !is.na(casinodata$geocodehere_lon))))
 
-# Clean table for data explorer
+# Clean table for data explorer (create BEFORE loading Matrix which can mask tidyr functions)
 cleantable <- allzips %>%
   select(
     City = city.x,
@@ -86,3 +61,28 @@ available_years <- 2012:2024
 
 # Default analysis year
 default_year <- 2020
+
+# Now load stateior and modules (AFTER data is loaded to avoid conflicts)
+stateior_available <- FALSE
+tryCatch({
+  if (requireNamespace("stateior", quietly = TRUE)) {
+    library(stateior)
+    stateior_available <- TRUE
+    message("stateior loaded successfully")
+  }
+}, error = function(e) {
+  message("stateior not available - using default multipliers")
+})
+
+# Source economic impact modules
+module_files <- c("R/io_data_loader.R", "R/leontief_engine.R",
+                  "R/multiplier_calc.R", "R/impact_analysis.R", "R/tax_estimator.R")
+for (f in module_files) {
+  if (file.exists(f)) {
+    tryCatch({
+      source(f)
+    }, error = function(e) {
+      message(paste("Could not load module:", f))
+    })
+  }
+}

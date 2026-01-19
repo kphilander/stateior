@@ -58,8 +58,6 @@ function(input, output, session) {
   })
 
   observe({
-    # Wait for input to be available before proceeding
-    req(input$color)
     message("Map observe triggered - rendering markers...")
 
     colorBy <- input$color
