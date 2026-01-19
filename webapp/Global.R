@@ -32,6 +32,12 @@ for (f in module_files) {
 allzips <- readRDS("allzips.rds")
 casinodata <- readRDS("casinodata.rds")
 
+# Debug: verify data loaded correctly
+message(paste("Loaded", nrow(allzips), "zip codes"))
+message(paste("Loaded", nrow(casinodata), "casinos"))
+message(paste("Casino columns:", paste(names(casinodata), collapse=", ")))
+message(paste("Valid casino lat/lon:", sum(!is.na(casinodata$geocodehere_lat) & !is.na(casinodata$geocodehere_lon))))
+
 # Clean table for data explorer
 cleantable <- allzips %>%
   select(

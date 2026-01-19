@@ -58,6 +58,9 @@ function(input, output, session) {
   })
 
   observe({
+    # Wait for input to be available before proceeding
+    req(input$color)
+
     colorBy <- input$color
     sizeBy <- input$size
 
