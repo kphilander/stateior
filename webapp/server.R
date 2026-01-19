@@ -162,7 +162,7 @@ function(input, output, session) {
         is.null(input$cities) | City %in% input$cities,
         is.null(input$zipcodes) | Zipcode %in% input$zipcodes
       ) %>%
-      mutate(Action = paste('<a class="go-map" href="" data-lat="', Lat, '" data-long="', Long, '" data-zip="', Zipcode, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
+      mutate(Action = paste('<a class="go-map" href="" data-lat="', Lat, '" data-long="', Long, '" data-zip="', Zipcode, '"><i class="fa fa-map-marker"></i></a>', sep=""))
     action <- DT::dataTableAjax(session, df, outputId = "ziptable")
 
     DT::datatable(df, options = list(pageLength = 10, width="100%", scrollX = TRUE), escape = FALSE)
