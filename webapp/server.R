@@ -162,8 +162,8 @@ function(input, output, session) {
   output$ziptable <- DT::renderDataTable({
     df <- cleantable %>%
       filter(
-        `Location Desirability Rank` >= input$minScore,
-        `Location Desirability Rank` <= input$maxScore,
+        `Desirability Rank` >= input$minScore,
+        `Desirability Rank` <= input$maxScore,
         is.null(input$states) | State %in% input$states,
         is.null(input$cities) | City %in% input$cities,
         is.null(input$zipcodes) | Zipcode %in% input$zipcodes
@@ -172,5 +172,95 @@ function(input, output, session) {
     action <- DT::dataTableAjax(session, df, outputId = "ziptable")
 
     DT::datatable(df, options = list(pageLength = 10, width="100%", scrollX = TRUE), escape = FALSE)
+  })
+
+  ## Impact Calculator ###########################################
+
+  # Store calculated results
+  calc_results <- reactiveValues(
+    output = NULL,
+    jobs = NULL,
+    income = NULL,
+    multipliers = NULL
+  )
+
+  # Calculate impact when button is clicked
+  observeEvent(input$calculate, {
+    req(input$calc_state, input$calc_ggr)
+
+    # Get multipliers for selected state
+    state_mult <- state_multipliers[state_multipliers$state_abbr == input$calc_state, ]
+
+    if (nrow(state_mult) == 0) {
+      # Use default multipliers if state not found
+      state_mult <- data.frame(
+        state_abbr = input$calc_state,
+        output_mult = 2.4,
+        emp_mult = 14,
+        income_mult = 0.55
+      )
+    }
+
+    # Calculate impacts (GGR is in millions)
+    ggr_dollars <- input$calc_ggr * 1e6
+
+    calc_results$output <- ggr_dollars * state_mult$output_mult
+    calc_results$jobs <- round(input$calc_ggr * state_mult$emp_mult)
+    calc_results$income <- ggr_dollars * state_mult$income_mult
+    calc_results$multipliers <- state_mult
+  })
+
+  # Render output results
+  output$result_output <- renderText({
+    if (is.null(calc_results$output)) {
+      "--"
+    } else {
+      paste0("$", format(round(calc_results$output / 1e6, 1), big.mark = ","), "M")
+    }
+  })
+
+  output$result_jobs <- renderText({
+    if (is.null(calc_results$jobs)) {
+      "--"
+    } else {
+      format(calc_results$jobs, big.mark = ",")
+    }
+  })
+
+  output$result_income <- renderText({
+    if (is.null(calc_results$income)) {
+      "--"
+    } else {
+      paste0("$", format(round(calc_results$income / 1e6, 1), big.mark = ","), "M")
+    }
+  })
+
+  # Render multiplier table
+  output$multiplier_table <- renderTable({
+    if (is.null(calc_results$multipliers)) {
+      data.frame(
+        Multiplier = c("Output", "Employment", "Income"),
+        Value = c("--", "--", "--"),
+        Description = c(
+          "Total economic output per $1 GGR",
+          "Jobs per $1M GGR",
+          "Labor income per $1 GGR"
+        )
+      )
+    } else {
+      data.frame(
+        Multiplier = c("Output", "Employment", "Income"),
+        Value = c(
+          paste0(round(calc_results$multipliers$output_mult, 2), "x"),
+          paste0(calc_results$multipliers$emp_mult, " jobs/$M"),
+          paste0(round(calc_results$multipliers$income_mult * 100, 0), "%")
+        ),
+        Description = c(
+          "Total economic output per $1 GGR",
+          "Jobs per $1M GGR",
+          "Labor income as % of GGR"
+        )
+      )
+    }
   })
 }

@@ -6,7 +6,10 @@ vars <- c(
   "Adult (21+) mean income" = "income"
 )
 
-navbarPage("Casino Geo-Demand Model [Beta] by Kahlil Philander", id="nav",
+# State choices for calculator
+state_choices <- c("Select state" = "", structure(state.abb, names=state.name))
+
+navbarPage("Casino Economic Impact Model", id="nav",
   tabPanel("Interactive map",
     div(class="outer",
       tags$head(
@@ -25,10 +28,68 @@ navbarPage("Casino Geo-Demand Model [Beta] by Kahlil Philander", id="nav",
       ),
 
       tags$div(id="cite",
-        'Copyright Kahlil Philander (2022). ',
-        tags$em('Casino locations from worldcasinodirectory.com, HERE API, and author.'),
+        'Casino Economic Impact Model. ',
+        tags$em('Casino locations from worldcasinodirectory.com.'),
         tags$br(),
-        'Figures based on data from US Census, BEA, and author calculations.'
+        'Economic multipliers from stateior I-O tables.'
+      )
+    )
+  ),
+
+  tabPanel("Impact Calculator",
+    fluidPage(
+      titlePanel("Economic Impact Calculator"),
+
+      fluidRow(
+        column(4,
+          wellPanel(
+            h4("Input Parameters"),
+            selectInput("calc_state", "State:", choices = state_choices),
+            numericInput("calc_ggr", "Gross Gaming Revenue ($M):", value = 100, min = 1, max = 10000),
+            hr(),
+            actionButton("calculate", "Calculate Impact", class = "btn-primary btn-lg"),
+            hr(),
+            p(class = "text-muted", "Enter the state and estimated annual GGR to calculate economic impacts using I-O multipliers.")
+          )
+        ),
+
+        column(8,
+          h4("Economic Impact Results"),
+
+          fluidRow(
+            column(4,
+              div(class = "well text-center",
+                h5("Total Economic Output"),
+                h2(textOutput("result_output")),
+                p("Direct + Indirect + Induced")
+              )
+            ),
+            column(4,
+              div(class = "well text-center",
+                h5("Jobs Supported"),
+                h2(textOutput("result_jobs")),
+                p("Full-time equivalent")
+              )
+            ),
+            column(4,
+              div(class = "well text-center",
+                h5("Labor Income"),
+                h2(textOutput("result_income")),
+                p("Wages and benefits")
+              )
+            )
+          ),
+
+          hr(),
+
+          h4("Multipliers Used"),
+          tableOutput("multiplier_table"),
+
+          p(class = "text-muted",
+            "Multipliers are Type II (includes induced effects) for the Amusements, Gambling, and Recreation sector (BEA code 713). ",
+            "Source: Derived from stateior state-level I-O tables."
+          )
+        )
       )
     )
   ),
