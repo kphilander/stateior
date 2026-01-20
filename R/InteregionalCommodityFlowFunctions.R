@@ -187,7 +187,7 @@ generateDomestic2RegionICFs <- function(state, year, specs, iolevel,
       ICF[ICF[, bea] == "22", cols] <- calculateUtilitiesFlowRatios(state, year, specs)[, cols]
       ICF[ICF[, bea] == "22", "source"] <- "EIA"      
     } else {
-      ICF[ICF[, bea] == "221100", cols] <- calculateElectricityFlowRatios(state, year)[, cols]
+      ICF[ICF[, bea] == "221100", cols] <- calculateElectricityFlowRatios(state, year, specs)[, cols]
       ICF[ICF[, bea] == "221100", "source"] <- "EIA"
       ICF[ICF[, bea] %in% c("221200", "221300"), cols] <- data.frame("SoI2SoI" = 1,
                                                                      "SoI2RoUS" = 0,
