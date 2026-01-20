@@ -124,8 +124,9 @@ buildLeontiefSystem <- function(state, year) {
   rownames(L) <- rownames(A)
   colnames(L) <- colnames(A)
 
-  # Track SoI sectors (first block)
-  soi_sectors <- colnames(A)[seq_len(length(soi_ind))]
+  # Track SoI sectors - those in original SoI industry list that still exist in final matrix
+  # Use intersect to handle any filtering that occurred
+  soi_sectors <- intersect(soi_ind, colnames(A))
 
   result <- list(
     A = A,
