@@ -140,6 +140,32 @@ for (st in states_to_test) {
 }
 
 message("\n==============================================")
+message("STEP 7: Check Employment/Compensation Coefficients")
+message("==============================================\n")
+
+tryCatch({
+  emp_coef <- getEmploymentCoefficients("Nevada", year)
+  message("  Employment coefficients loaded: ", length(emp_coef), " sectors")
+  if (length(emp_coef) > 0) {
+    message("  First 5: ", paste(head(names(emp_coef)), collapse=", "))
+    message("  713 coefficient: ", if ("713" %in% names(emp_coef)) emp_coef["713"] else "NOT FOUND")
+  }
+}, error = function(e) {
+  message("  Employment coefficients ERROR: ", e$message)
+})
+
+tryCatch({
+  comp_coef <- getCompensationCoefficients("Nevada", year)
+  message("\n  Compensation coefficients loaded: ", length(comp_coef), " sectors")
+  if (length(comp_coef) > 0) {
+    message("  First 5: ", paste(head(names(comp_coef)), collapse=", "))
+    message("  713 coefficient: ", if ("713" %in% names(comp_coef)) comp_coef["713"] else "NOT FOUND")
+  }
+}, error = function(e) {
+  message("  Compensation coefficients ERROR: ", e$message)
+})
+
+message("\n==============================================")
 message("Expected Results:")
 message("  - Type I multipliers should range from ~1.2 to ~1.8")
 message("  - Nevada should have relatively higher multiplier")

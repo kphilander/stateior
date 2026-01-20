@@ -50,10 +50,12 @@ calculateTypeIMultipliers <- function(state, year, sector = "713") {
   emp_mult <- NA
   if (length(emp_coef) > 0) {
     # Match sectors between Leontief and employment
-    L_col <- leontief$L[, col_idx]
+    # Only use SoI sectors for state-level employment impact
+    L_col <- leontief$L[soi_rows, col_idx]
     emp_impact <- 0
     for (sector_name in names(L_col)) {
-      clean_sector <- gsub("/.*", "", sector_name)
+      # Strip _SoI suffix to match coefficient names
+      clean_sector <- gsub("_SoI$|_RoUS$", "", sector_name)
       if (clean_sector %in% names(emp_coef)) {
         emp_impact <- emp_impact + L_col[sector_name] * emp_coef[clean_sector]
       }
@@ -64,10 +66,10 @@ calculateTypeIMultipliers <- function(state, year, sector = "713") {
   # Income multiplier: weighted sum by compensation coefficients
   income_mult <- NA
   if (length(comp_coef) > 0) {
-    L_col <- leontief$L[, col_idx]
+    L_col <- leontief$L[soi_rows, col_idx]
     income_impact <- 0
     for (sector_name in names(L_col)) {
-      clean_sector <- gsub("/.*", "", sector_name)
+      clean_sector <- gsub("_SoI$|_RoUS$", "", sector_name)
       if (clean_sector %in% names(comp_coef)) {
         income_impact <- income_impact + L_col[sector_name] * comp_coef[clean_sector]
       }
