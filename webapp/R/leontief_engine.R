@@ -81,9 +81,17 @@ buildLeontiefSystem <- function(state, year) {
   soi_output[soi_output == 0] <- 1
   rous_output[rous_output == 0] <- 1
 
-  # Get industry columns only (exclude final demand)
-  soi_ind <- getIndustryCols(colnames(ls$SoI2SoI))
-  rous_ind <- getIndustryCols(colnames(ls$RoUS2RoUS))
+  # Get industry columns from each block (exclude final demand)
+  # Use INTERSECTION because column counts may differ between blocks
+  soi2soi_ind <- getIndustryCols(colnames(ls$SoI2SoI))
+  rous2soi_ind <- getIndustryCols(colnames(ls$RoUS2SoI))
+  soi2rous_ind <- getIndustryCols(colnames(ls$SoI2RoUS))
+  rous2rous_ind <- getIndustryCols(colnames(ls$RoUS2RoUS))
+
+  # Use common columns for SoI industries (SoI2SoI and RoUS2SoI blocks)
+  soi_ind <- intersect(soi2soi_ind, rous2soi_ind)
+  # Use common columns for RoUS industries (SoI2RoUS and RoUS2RoUS blocks)
+  rous_ind <- intersect(soi2rous_ind, rous2rous_ind)
 
   # Normalize each block of the Use table
   A_SoI2SoI <- normalizeUseTable(ls$SoI2SoI[, soi_ind, drop = FALSE], soi_output)
