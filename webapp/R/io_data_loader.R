@@ -8,7 +8,7 @@ io_cache <- new.env(parent = emptyenv())
 #' Load two-region I-O data for a state with caching
 #' @param state State name (e.g., "Nevada")
 #' @param year Data year (2012-2024)
-#' @return List containing DomesticUse, IndustryOutput, CommodityOutput, ValueAdded
+#' @return List containing DomesticUsewithTrade (list), IndustryOutput (vector)
 loadTwoRegionIOData <- function(state, year) {
   cache_key <- paste(state, year, sep = "_")
 
@@ -16,17 +16,13 @@ loadTwoRegionIOData <- function(state, year) {
     return(get(cache_key, envir = io_cache))
   }
 
-  # Load data from stateior
-  domestic_use_all <- loadStateIODataFile(paste0("TwoRegion_Summary_DomesticUse_", year))
+  # Load DomesticUsewithTrade (LIST with SoI2SoI, RoUS2SoI, SoI2RoUS, RoUS2RoUS)
+  domestic_use_list <- loadStateIODataFile(paste0("TwoRegion_Summary_DomesticUsewithTrade_", year))
   industry_output_all <- loadStateIODataFile(paste0("TwoRegion_Summary_IndustryOutput_", year))
-  commodity_output_all <- loadStateIODataFile(paste0("TwoRegion_Summary_CommodityOutput_", year))
-  value_added_all <- loadStateIODataFile(paste0("TwoRegion_Summary_ValueAdded_", year))
 
   result <- list(
-    DomesticUse = domestic_use_all[[state]],
-    IndustryOutput = industry_output_all[[state]],
-    CommodityOutput = commodity_output_all[[state]],
-    ValueAdded = value_added_all[[state]]
+    DomesticUsewithTrade = domestic_use_list[[state]],  # List with 4 components
+    IndustryOutput = industry_output_all[[state]]       # Named vector
   )
 
   # Cache the result
@@ -61,8 +57,11 @@ getEmploymentCoefficients <- function(state, year) {
   emp_data <- getStateEmployment(state, year)
   io_data <- loadTwoRegionIOData(state, year)
 
-  # Get industry output for the state (SoI portion)
+  # Get industry output for the state (named vector)
   industry_output <- io_data$IndustryOutput
+
+  # Get state abbreviation for matching
+  state_abbr <- if (state == "District of Columbia") "DC" else state.abb[match(state, state.name)]
 
   # Match employment to output by sector code
   schema_col <- if (year >= 2017) "BEA_2017_Summary_Code" else "BEA_2012_Summary_Code"
@@ -73,10 +72,10 @@ getEmploymentCoefficients <- function(state, year) {
     sector <- emp_data[[schema_col]][i]
     emp <- emp_data$Emp[i]
 
-    # Find matching output (look for SoI sectors)
-    output_row <- grep(paste0("^", sector), rownames(industry_output), value = TRUE)
-    if (length(output_row) > 0) {
-      output_val <- industry_output[output_row[1], "Output"]
+    # Find matching output (look for SoI sectors in named vector)
+    output_name <- paste0(sector, "/US-", state_abbr)
+    if (output_name %in% names(industry_output)) {
+      output_val <- industry_output[output_name]
       if (!is.na(output_val) && output_val > 0) {
         # Employment per $1M output
         coefficients[sector] <- (emp / output_val) * 1e6
@@ -94,29 +93,42 @@ getEmploymentCoefficients <- function(state, year) {
 getCompensationCoefficients <- function(state, year) {
   io_data <- loadTwoRegionIOData(state, year)
 
-  value_added <- io_data$ValueAdded
+  # Get industry output (named vector)
   industry_output <- io_data$IndustryOutput
+
+  # Get state abbreviation
+  state_abbr <- if (state == "District of Columbia") "DC" else state.abb[match(state, state.name)]
+
+  # For compensation, we need value added data
+  # Load it separately since DomesticUsewithTrade doesn't include it
+  value_added_all <- loadStateIODataFile(paste0("TwoRegion_Summary_ValueAdded_", year))
+  value_added <- value_added_all[[state]]
 
   # Compensation is typically row "V001" in value added
   if ("V001" %in% rownames(value_added)) {
     comp_row <- value_added["V001", ]
   } else {
     # Try to find compensation row
-    comp_row <- value_added[grep("Compensation|V001", rownames(value_added)), ]
-    if (nrow(comp_row) > 0) comp_row <- comp_row[1, ]
+    comp_idx <- grep("Compensation|V001", rownames(value_added))
+    if (length(comp_idx) > 0) {
+      comp_row <- value_added[comp_idx[1], ]
+    } else {
+      return(numeric())
+    }
   }
 
   # Calculate coefficients for SoI industries
-  soi_cols <- grep("/US-", colnames(comp_row), value = TRUE)
+  soi_pattern <- paste0("/US-", state_abbr, "$")
+  soi_cols <- grep(soi_pattern, names(comp_row), value = TRUE)
   coefficients <- numeric()
 
   for (col in soi_cols) {
     sector <- gsub("/US-.*", "", col)
-    comp_val <- as.numeric(comp_row[, col])
+    comp_val <- as.numeric(comp_row[col])
 
-    output_row <- grep(paste0("^", sector), rownames(industry_output), value = TRUE)
-    if (length(output_row) > 0) {
-      output_val <- industry_output[output_row[1], "Output"]
+    # Find matching output
+    if (col %in% names(industry_output)) {
+      output_val <- industry_output[col]
       if (!is.na(output_val) && output_val > 0 && !is.na(comp_val)) {
         coefficients[sector] <- comp_val / output_val
       }

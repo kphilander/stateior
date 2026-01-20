@@ -6,59 +6,65 @@ library(Matrix)
 # Cache for Leontief matrices
 leontief_cache <- new.env(parent = emptyenv())
 
-#' Extract the intermediate use portion of the Use table
-#' @param use_table Full Use table (commodities x industries+final demand)
-#' @return Matrix of intermediate use only (commodities x industries)
-extractIntermediateUse <- function(use_table) {
-  # Remove value added rows (V001, V002, V003, Used, Other)
-  va_rows <- c("V001", "V002", "V003", "Used", "Other", "T00OTOP", "T00SUB", "T00TOP")
-  use_clean <- use_table[!rownames(use_table) %in% va_rows, ]
-
-  # Keep only industry columns (exclude final demand categories)
-  # Final demand codes typically start with F or are specific codes
-
-  fd_patterns <- c("^F0", "^T0", "^Used", "^Other")
-  industry_cols <- colnames(use_clean)
-  for (pattern in fd_patterns) {
-    industry_cols <- industry_cols[!grepl(pattern, industry_cols)]
-  }
-
-  return(as.matrix(use_clean[, industry_cols]))
+#' Get state abbreviation from state name
+getStateAbbr <- function(state) {
+  if (state == "District of Columbia") return("DC")
+  state.abb[match(state, state.name)]
 }
 
-#' Construct the direct requirements (A) matrix
-#' @param use_table Domestic Use table
-#' @param industry_output Industry output vector
-#' @return A matrix (commodities x industries)
-constructAMatrix <- function(use_table, industry_output) {
-  # Extract intermediate use
-  intermediate_use <- extractIntermediateUse(use_table)
+#' Construct the direct requirements (A) matrix from two-region data
+#' @param io_data List with DomesticUsewithTrade and IndustryOutput
+#' @param state_abbr State abbreviation (e.g., "NV")
+#' @return A matrix (direct requirements)
+constructAMatrix <- function(io_data, state_abbr) {
+  use_list <- io_data$DomesticUsewithTrade
+  output <- io_data$IndustryOutput
 
-  # Get output values for each industry column
-  output_vec <- numeric(ncol(intermediate_use))
-  names(output_vec) <- colnames(intermediate_use)
+  # Separate SoI and RoUS output vectors
+  soi_pattern <- paste0("/US-", state_abbr, "$")
+  soi_output <- output[grepl(soi_pattern, names(output))]
+  rous_output <- output[grepl("/RoUS$", names(output))]
 
-  for (col in colnames(intermediate_use)) {
-    # Match column to output row
-    output_row <- grep(paste0("^", gsub("/.*", "", col)), rownames(industry_output), value = TRUE)
-    if (length(output_row) > 0) {
-      output_vec[col] <- industry_output[output_row[1], "Output"]
-    }
+  # Get industry columns (exclude final demand F0xx, T0xx)
+  get_industry_cols <- function(mat) {
+    cols <- colnames(mat)
+    sector_codes <- gsub("/.*", "", cols)
+    cols[!grepl("^F0|^T0", sector_codes)]
   }
 
-  # Calculate A matrix: A[i,j] = Use[i,j] / Output[j]
-  A <- intermediate_use
-  for (j in 1:ncol(A)) {
-    if (output_vec[j] > 0) {
-      A[, j] <- A[, j] / output_vec[j]
-    } else {
-      A[, j] <- 0
+  # Normalize use table by output
+  normalize <- function(use_mat, output_vec) {
+    ind_cols <- get_industry_cols(use_mat)
+    if (length(ind_cols) == 0) return(matrix(0, nrow = nrow(use_mat), ncol = 0))
+    use_mat <- as.matrix(use_mat[, ind_cols, drop = FALSE])
+    for (j in seq_len(ncol(use_mat))) {
+      col_name <- colnames(use_mat)[j]
+      out_val <- output_vec[col_name]
+      if (!is.null(out_val) && !is.na(out_val) && out_val > 0) {
+        use_mat[, j] <- use_mat[, j] / out_val
+      } else {
+        use_mat[, j] <- 0
+      }
     }
+    use_mat[is.na(use_mat) | is.infinite(use_mat)] <- 0
+    use_mat
   }
 
-  # Replace NA/Inf with 0
+  # Build A matrix blocks from each regional pairing
+  A_SoI2SoI <- normalize(use_list$SoI2SoI, soi_output)
+  A_RoUS2SoI <- normalize(use_list$RoUS2SoI, soi_output)
+  A_SoI2RoUS <- normalize(use_list$SoI2RoUS, rous_output)
+  A_RoUS2RoUS <- normalize(use_list$RoUS2RoUS, rous_output)
+
+  # Assemble block matrix
+  # [SoI commodities to SoI industries | SoI commodities to RoUS industries]
+  # [RoUS commodities to SoI industries | RoUS commodities to RoUS industries]
+  A <- rbind(
+    cbind(A_SoI2SoI, A_SoI2RoUS),
+    cbind(A_RoUS2SoI, A_RoUS2RoUS)
+  )
+
   A[is.na(A) | is.infinite(A)] <- 0
-
   return(A)
 }
 
@@ -66,33 +72,30 @@ constructAMatrix <- function(use_table, industry_output) {
 #' @param A Direct requirements matrix
 #' @return L matrix = (I - A)^(-1)
 calculateLeontiefInverse <- function(A) {
-  n <- ncol(A)
-
   # Make A square if needed (use common dimensions)
   if (nrow(A) != ncol(A)) {
-    # Use the smaller dimension
     common_names <- intersect(rownames(A), colnames(A))
     if (length(common_names) > 0) {
       A <- A[common_names, common_names]
     } else {
-      # Create square matrix from min dimension
       min_dim <- min(nrow(A), ncol(A))
       A <- A[1:min_dim, 1:min_dim]
     }
   }
 
-  # Identity matrix
+  # Identity matrix with same row/col names
   I <- diag(nrow(A))
+  rownames(I) <- rownames(A)
+  colnames(I) <- colnames(A)
 
   # Calculate Leontief inverse: L = (I - A)^(-1)
   tryCatch({
     L <- solve(I - A, tol = 1e-20)
-    return(L)
+    L
   }, error = function(e) {
-    # If matrix is singular, use pseudoinverse
+    # If matrix is singular, use regularization
     warning("Matrix near-singular, using regularization")
-    L <- solve(I - A + diag(1e-10, nrow(A)))
-    return(L)
+    solve(I - A + diag(1e-10, nrow(A)))
   })
 }
 
@@ -107,11 +110,14 @@ buildLeontiefSystem <- function(state, year) {
     return(get(cache_key, envir = leontief_cache))
   }
 
+  # Get state abbreviation
+  state_abbr <- getStateAbbr(state)
+
   # Load I-O data
   io_data <- loadTwoRegionIOData(state, year)
 
-  # Construct A matrix
-  A <- constructAMatrix(io_data$DomesticUse, io_data$IndustryOutput)
+  # Construct A matrix using two-region structure
+  A <- constructAMatrix(io_data, state_abbr)
 
   # Calculate Leontief inverse
   L <- calculateLeontiefInverse(A)
@@ -128,6 +134,7 @@ buildLeontiefSystem <- function(state, year) {
     soi_sectors = soi_sectors,
     rous_sectors = rous_sectors,
     state = state,
+    state_abbr = state_abbr,
     year = year
   )
 
@@ -154,7 +161,8 @@ findGamblingSectorColumn <- function(leontief_system, region = "SoI") {
   gambling_code <- getGamblingSectorCode(leontief_system$year)
 
   if (region == "SoI") {
-    pattern <- paste0("^", gambling_code, "/US-")
+    # Match "713/US-XX" pattern for State of Interest
+    pattern <- paste0("^", gambling_code, "/US-", leontief_system$state_abbr)
     cols <- grep(pattern, leontief_system$sectors, value = TRUE)
   } else {
     pattern <- paste0("^", gambling_code, "/RoUS")
