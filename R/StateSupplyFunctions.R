@@ -35,7 +35,7 @@ getStateGVA <- function(year, specs) {
 #' @return A data frame contains state value for all states with row names being BEA sector code.
 mapStateTabletoBEASummary <- function(statetablename, year, specs) {
   # Load and adjust State tables
-  StateTable <- adjustGVAComponent(year, statetablename)
+  StateTable <- adjustGVAComponent(year, statetablename, specs)
   # Load State GVA to BEA Summary sector-mapping table
   GVAtoBEAmapping <- loadBEAStateDatatoBEASummaryMapping("GVA", schema=specs$BaseIOSchema)
   # Merge state table with BEA Summary sector code and name
@@ -336,6 +336,7 @@ getStateEmploymentTable <- function(year, specs=NULL) {
     ver <- specs$model_ver
     schema <- specs$BaseIOSchema
   }
+  BEA_col <- paste0("BEA_", schema, "_Summary_Code")
   BEAStateEmp <- loadStateIODataFile(paste0("State_Employment_", year),
                                      ver = ver)
   EmptoBEAmapping <- loadBEAStateDatatoBEASummaryMapping("Employment", schema = schema)

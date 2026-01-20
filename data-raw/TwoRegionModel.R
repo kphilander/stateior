@@ -1,9 +1,11 @@
 # Generate and save two-region IO tables
 
+# Uncomment one of the following model specifications:
 # model_spec <- "StateIOv1.2-milkbar" # Utilities disaggregation
 # model_spec <- "StateIOv1.2-shoofly" # base model
-# model_spec <- "StateIOv1.3-pecan" # 2017 schema model
-# year <- 2019
+model_spec <- "StateIOv1.3-pecan" # 2017 schema model
+# Set year to desired data year
+year <- 2019
 
 # Load model spec
 logging::loginfo(paste("Generating two region model for", model_spec))

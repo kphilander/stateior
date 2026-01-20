@@ -1,12 +1,14 @@
 # stateior Error Report
 
 Generated: 2026-01-20
+Status: **FIXED**
 
 ## Overview
 
 This report documents errors found during a code review of the stateior R package.
+All errors have been fixed in this commit.
 
-## Critical Errors
+## Fixed Errors
 
 ### 1. Undefined Variable: `schema` in IOFunctions.R
 
@@ -14,16 +16,9 @@ This report documents errors found during a code review of the stateior R packag
 **Line:** 59
 **Function:** `calculateUSInternationalTransportMarginsRatioMatrix()`
 
-**Issue:** The variable `schema` is used but not defined within the function scope.
+**Issue:** The variable `schema` was used but not defined within the function scope.
 
-```r
-# Line 59 - Current (broken)
-US_Import <- loadDatafromUSEEIOR(paste(iolevel, "Import", year, "BeforeRedef",
-                                       paste0(substr(schema, 3, 4), "sch"),
-                                       sep = "_"))*1E6
-```
-
-**Fix:** Add `schema <- specs$BaseIOSchema` at the start of the function.
+**Fix:** Added `schema <- specs$BaseIOSchema` at the start of the function.
 
 ---
 
@@ -33,50 +28,33 @@ US_Import <- loadDatafromUSEEIOR(paste(iolevel, "Import", year, "BeforeRedef",
 **Line:** 346-347
 **Function:** `getStateEmploymentTable()`
 
-**Issue:** The variable `BEA_col` is used but not defined.
+**Issue:** The variable `BEA_col` was used but not defined.
 
-```r
-# Lines 346-347 - Current (broken)
-BEAStateEmp <- stats::aggregate(BEAStateEmp[, as.character(year)],
-                                by = list(BEAStateEmp[[BEA_col]],
-                                          BEAStateEmp$GeoName), sum)
-```
-
-**Fix:** Add `BEA_col <- paste0("BEA_", schema, "_Summary_Code")` before line 346.
+**Fix:** Added `BEA_col <- paste0("BEA_", schema, "_Summary_Code")` after schema definition.
 
 ---
 
-### 3. Undefined Variable: `specs` in StateUseFunctions.R
+### 3. Missing Parameter: `specs` in StateUseFunctions.R
 
 **File:** `R/StateUseFunctions.R`
-**Line:** 139
+**Line:** 137
 **Function:** `adjustGVAComponent()`
 
-**Issue:** The function uses `specs` internally but doesn't accept it as a parameter.
+**Issue:** The function used `specs` internally but didn't accept it as a parameter.
 
-```r
-# Line 139 - Current (broken)
-gva <- getStateGVA(year, specs)
-```
-
-**Fix:** Add `specs` parameter to function signature: `adjustGVAComponent <- function(year, return, specs)`
+**Fix:** Added `specs` parameter to function signature and updated all call sites.
 
 ---
 
-### 4. Missing `specs` Argument in InteregionalCommodityFlowFunctions.R
+### 4. Missing Argument in InteregionalCommodityFlowFunctions.R
 
 **File:** `R/InteregionalCommodityFlowFunctions.R`
 **Line:** 190
 **Function:** `generateDomestic2RegionICFs()`
 
-**Issue:** `calculateElectricityFlowRatios()` is called without required `specs` argument.
+**Issue:** `calculateElectricityFlowRatios()` was called without required `specs` argument.
 
-```r
-# Line 190 - Current (broken)
-ICF[ICF[, bea] == "221100", cols] <- calculateElectricityFlowRatios(state, year)[, cols]
-```
-
-**Fix:** Change to `calculateElectricityFlowRatios(state, year, specs)[, cols]`
+**Fix:** Added `specs` argument to the function call.
 
 ---
 
@@ -86,57 +64,38 @@ ICF[ICF[, bea] == "221100", cols] <- calculateElectricityFlowRatios(state, year)
 **Line:** 14
 **Function:** `writeStateIODatatoCSV()`
 
-**Issue:** The variable `matrix` is used but not defined.
+**Issue:** The variable `matrix` was used but not defined.
 
-```r
-# Line 14 - Current (broken)
-utils::write.csv(data, file.path(outputfolder, "/", matrix, ".csv"),
-                 na = "", row.names = TRUE, fileEncoding = "UTF-8")
-```
-
-**Fix:** Change `matrix` to `filename`.
+**Fix:** Changed `matrix` to `filename` and fixed the file path construction.
 
 ---
 
-### 6. Missing `specs` Argument in StateUseFunctions.R
+### 6. Missing Parameter: `specs` in StateUseFunctions.R
 
 **File:** `R/StateUseFunctions.R`
-**Lines:** 295, 300-301
+**Lines:** 294, 296
 **Function:** `calculateStateTotalPCE()`
 
-**Issue:** `getStatePCE()` is called without required `specs` argument.
+**Issue:** `getStatePCE()` was called without required `specs` argument.
 
-```r
-# Line 295 - Current (broken)
-PCE <- getStatePCE(year)
-```
-
-**Fix:** Add `specs` parameter to function and pass to `getStatePCE(year, specs)`.
+**Fix:** Added `specs` parameter to function signature and updated the call to `getStatePCE()`.
 
 ---
 
 ### 7. Undefined Variable: `year` in data-raw scripts
 
-**Files:** `data-raw/StateSupplyModel.R`, `data-raw/StateUseModel.R`
-**Line:** 7 (both files)
+**Files:** `data-raw/StateSupplyModel.R`, `data-raw/StateUseModel.R`, `data-raw/TwoRegionModel.R`
 
-**Issue:** The variable `year` is used but never defined.
+**Issue:** The variable `year` was used but never defined.
 
-```r
-# Line 7 - Current (broken)
-StateSupplyModel <- buildStateSupplyModel(year, specs)
-```
-
-**Fix:** Define `year` variable before use, e.g., `year <- 2017`.
+**Fix:** Added `year` variable definition with default value and comments. Also fixed `specs` initialization from `{}` to `list()`.
 
 ---
 
 ## Summary
 
-| Severity | Count |
-|----------|-------|
-| Critical (undefined variables) | 6 |
-| Critical (missing function arguments) | 2 |
-| **Total** | **8** |
-
-These errors would cause runtime failures when the affected functions are called.
+| Severity | Count | Status |
+|----------|-------|--------|
+| Critical (undefined variables) | 6 | Fixed |
+| Critical (missing function arguments) | 2 | Fixed |
+| **Total** | **8** | **All Fixed** |

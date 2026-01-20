@@ -53,6 +53,8 @@ generateInternationalTradeAdjustmentVector <- function(iolevel, year, specs) {
 #' @param specs A list of model specs including 'BaseIOSchema'
 #' @return A data frame contains US International Transport Margins Ratio (matrix) at a specific year at BEA Summary level.
 calculateUSInternationalTransportMarginsRatioMatrix <- function(iolevel, year, specs) {
+  # Define schema
+  schema <- specs$BaseIOSchema
   # Load US Use and Import tables
   US_Use <- getNationalUse(iolevel, year, specs)
   US_Import <- loadDatafromUSEEIOR(paste(iolevel, "Import", year, "BeforeRedef",

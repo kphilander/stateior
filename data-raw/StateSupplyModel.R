@@ -1,6 +1,8 @@
 # Generate and save state Make tables
 # Build model
-specs <- {}
+# Set year to desired data year (e.g., 2017, 2018, 2019, 2020)
+year <- 2017
+specs <- list()
 specs$BaseIOSchema <- 2017
 specs$model_ver <- "0.4.0"
 
