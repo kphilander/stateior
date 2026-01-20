@@ -29,9 +29,11 @@ calculateTypeIMultipliers <- function(state, year, sector = "713") {
     col_idx <- which(grepl(sector, colnames(leontief$L)))[1]
   }
 
-  # Output multiplier: sum of Leontief column for the sector
-  # This gives total output generated per $1 of final demand
-  output_mult <- sum(leontief$L[, col_idx], na.rm = TRUE)
+  # Output multiplier: sum ONLY SoI rows of Leontief column
+  # This gives total output generated IN THE STATE per $1 of final demand
+  # (excluding rest-of-US spillover effects for state-level analysis)
+  soi_rows <- leontief$soi_sectors
+  output_mult <- sum(leontief$L[soi_rows, col_idx], na.rm = TRUE)
 
   # Get employment and compensation coefficients
   emp_coef <- tryCatch(
