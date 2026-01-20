@@ -11,7 +11,7 @@ writeStateIODatatoCSV <- function(filename, ver = NULL, state, outputfolder) {
   if (!dir.exists(outputfolder)) {
     dir.create(outputfolder, recursive = TRUE) 
   }
-  utils::write.csv(data, file.path(outputfolder, "/", matrix, ".csv"),
+  utils::write.csv(data, file.path(outputfolder, paste0(filename, ".csv")),
                    na = "", row.names = TRUE, fileEncoding = "UTF-8")
   logging::loginfo(paste0(state, unlist(strsplit(filename, "_"))[4],
                           unlist(strsplit(filename, "_"))[3],

@@ -4,13 +4,15 @@
 \alias{adjustGVAComponent}
 \title{Adjust EmpComp, Tax, and GOS to fill NA and make them consistent with GVA.}
 \usage{
-adjustGVAComponent(year, return)
+adjustGVAComponent(year, return, specs)
 }
 \arguments{
 \item{year}{A numeric value specifying the year of interest.}
 
 \item{return}{A character string showing which attribute to return.
 Can be "GVA", "EmpCompensation", "Tax", or "GOS".}
+
+\item{specs}{A list of model specs including 'BaseIOSchema'}
 }
 \value{
 A data frame contains adjusted EmpComp, Tax, GOS, and GVA.

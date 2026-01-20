@@ -132,9 +132,10 @@ estimateStateIntermediateConsumption <- function(year, specs) {
 #' @param year A numeric value specifying the year of interest.
 #' @param return A character string showing which attribute to return.
 #' Can be "GVA", "EmpCompensation", "Tax", or "GOS".
+#' @param specs A list of model specs including 'BaseIOSchema'
 #' @importFrom magrittr %>%
 #' @return A data frame contains adjusted EmpComp, Tax, GOS, and GVA.
-adjustGVAComponent <- function(year, return) {
+adjustGVAComponent <- function(year, return, specs) {
   # 0. Load data
   gva <- getStateGVA(year, specs)
   comp <- getStateEmpCompensation(year, specs)
@@ -289,10 +290,11 @@ assembleStateSummaryGrossValueAdded <- function(year, specs) {
 
 #' Calculate state total PCE (personal consumption expenditures) at BEA Summary level.
 #' @param year A numeric value specifying the year of interest.
+#' @param specs A list of model specs including 'BaseIOSchema'
 #' @return A data frame contains ratios of statetotal PCE for all states at a specific year at BEA Summary level.
-calculateStateTotalPCE <- function(year) {
+calculateStateTotalPCE <- function(year, specs) {
   # Load state and US PCE
-  PCE <- getStatePCE(year)
+  PCE <- getStatePCE(year, specs)
   # Extract state total PCE
   StateTotalPCE <- PCE[PCE$Line == 1 & PCE$GeoName != "United States", ]
   rownames(StateTotalPCE) <- StateTotalPCE$GeoName

@@ -4,10 +4,12 @@
 \alias{calculateStateTotalPCE}
 \title{Calculate state total PCE (personal consumption expenditures) at BEA Summary level.}
 \usage{
-calculateStateTotalPCE(year)
+calculateStateTotalPCE(year, specs)
 }
 \arguments{
 \item{year}{A numeric value specifying the year of interest.}
+
+\item{specs}{A list of model specs including 'BaseIOSchema'}
 }
 \value{
 A data frame contains ratios of statetotal PCE for all states at a specific year at BEA Summary level.
